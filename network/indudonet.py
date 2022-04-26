@@ -1,6 +1,6 @@
 """
 MICCAI2021: ``InDuDoNet: An Interpretable Dual Domain Network for CT Metal Artifact Reduction''
-paper link： https://arxiv.org/pdf/2109.05298.pdf
+paper link: https://arxiv.org/pdf/2109.05298.pdf
 """
 import os
 import torch

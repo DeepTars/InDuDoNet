@@ -4,13 +4,13 @@
 Created on Tue Nov 5 11:56:06 2020
 @author: hongwang (hongwang01@stu.xjtu.edu.cn)
 MICCAI2021: ``InDuDoNet: An Interpretable Dual Domain Network for CT Metal Artifact Reduction''
-paper link： https://arxiv.org/pdf/2109.05298.pdf
+paper link: https://arxiv.org/pdf/2109.05298.pdf
 """
 from __future__ import print_function
 import argparse
 import os
 import torch
-import torch.nn.functional as  F
+import torch.nn.functional as F
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
@@ -28,10 +28,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, default="./deep_lesion/", help='txt path to training spa-data')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
 parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
-parser.add_argument('--patchSize', type=int, default=416, help='the height / width of the input image to network')
+parser.add_argument('--patchSize', type=int, default=512, help='the height / width of the input image to network')
 parser.add_argument('--niter', type=int, default=100, help='total number of training epochs')
-parser.add_argument('--batchnum', type=int, default=1000, help='batchsize*batchnum=1000 for randomly selecting 1000 imag pairs at every iteration')
-parser.add_argument('--num_channel', type=int, default=32, help='the number of dual channels')  # refer to https://github.com/hongwang01/RCDNet for the channel concatenation strategy
+parser.add_argument('--batchnum', type=int, default=1000,
+                    help='batchsize*batchnum=1000 for randomly selecting 1000 imag pairs at every iteration')
+# refer to https://github.com/hongwang01/RCDNet for the channel concatenation strategy
+parser.add_argument('--num_channel', type=int, default=32, help='the number of dual channels')
 parser.add_argument('--T', type=int, default=4, help='the number of ResBlocks in every ProxNet')
 parser.add_argument('--S', type=int, default=10, help='the number of total iterative stages')
 parser.add_argument('--resume', type=int, default=0, help='continue to train')
@@ -53,7 +55,9 @@ except OSError:
     pass
 
 cudnn.benchmark = True
-def train_model(net,optimizer, scheduler,datasets):
+
+
+def train_model(net, optimizer, scheduler, datasets):
     data_loader = DataLoader(datasets, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.workers),
                              pin_memory=True)
     num_data = len(datasets)
@@ -70,17 +74,17 @@ def train_model(net,optimizer, scheduler,datasets):
             Xma, XLI, Xgt, mask, Sma, SLI, Sgt, Tr = [x.cuda() for x in data]
             net.train()
             optimizer.zero_grad()
-            ListX, ListS, ListYS= net(Xma, XLI, mask, Sma, SLI, Tr)
-            loss_l2YSmid=0
+            ListX, ListS, ListYS = net(Xma, XLI, mask, Sma, SLI, Tr)
+            loss_l2YSmid = 0
             loss_l2Xmid = 0
-            iter = opt.S -1
+            iter = opt.S - 1
             for j in range(iter):
                 loss_l2YSmid = float(loss_l2YSmid) + 0.1 * F.mse_loss(ListYS[j], Sgt)
                 loss_l2Xmid = float(loss_l2Xmid) + 0.1 * F.mse_loss(ListX[j] * (1 - mask), Xgt * (1 - mask))
             loss_l2YSf = F.mse_loss(ListYS[-1], Sgt)
             loss_l2Xf = F.mse_loss(ListX[-1] * (1 - mask), Xgt * (1 - mask))
             loss_l2YS = loss_l2YSf + loss_l2YSmid
-            loss_l2X = loss_l2Xf +  loss_l2Xmid
+            loss_l2X = loss_l2Xf + loss_l2Xmid
             loss = opt.gamma * loss_l2YS + loss_l2X
             loss.backward()
             optimizer.step()
@@ -113,6 +117,7 @@ def train_model(net,optimizer, scheduler,datasets):
     writer.close()
     print('Reach the maximal epochs! Finish training')
 
+
 if __name__ == '__main__':
     def print_network(name, net):
         num_params = 0
@@ -121,8 +126,8 @@ if __name__ == '__main__':
         print('name={:s}, Total number={:d}'.format(name, num_params))
     net = InDuDoNet(opt).cuda()
     print_network("InDuDoNet:", net)
-    optimizer= optim.Adam(net.parameters(), betas=(0.5, 0.999), lr=opt.lr)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=opt.milestone,gamma=0.5)  # learning rates
+    optimizer = optim.Adam(net.parameters(), betas=(0.5, 0.999), lr=opt.lr)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=opt.milestone, gamma=0.5)  # learning rates
     # from opt.resume continue to train
     for _ in range(opt.resume):
         scheduler.step()
@@ -133,5 +138,4 @@ if __name__ == '__main__':
     train_mask = np.load(os.path.join(opt.data_path, 'trainmask.npy'))
     train_dataset = MARTrainDataset(opt.data_path, opt.patchSize, opt.batchSize * opt.batchnum, train_mask)
     # train model
-    train_model(net, optimizer, scheduler,train_dataset)
-
+    train_model(net, optimizer, scheduler, train_dataset)

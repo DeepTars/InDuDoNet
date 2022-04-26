@@ -1,0 +1,15 @@
+
+.DS_Store
+*.pyc
+*.egg-info
+server/localdev-config.json
+credentials.json
+localdev-config.json
+
+
+logs/
+results/
+CLINIC_metal/bkp/*
+CLINIC_metal/test/*
+.vscode
+models

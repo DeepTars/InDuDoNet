@@ -82,7 +82,7 @@ def test_image(data_path, imag_idx, mask_idx):
     Sgt = np.asarray(ray_trafo(Xgt))
     file.close()
     M512 = test_mask[:,:,mask_idx]
-    M = np.array(Image.fromarray(M512).resize((416, 416), PIL.Image.BILINEAR))
+    M = np.array(Image.fromarray(M512).resize((512, 512), PIL.Image.BILINEAR))
     Xma = normalize(Xma, image_get_minmax())  # *255
     Xgt = normalize(Xgt, image_get_minmax())
     XLI = normalize(XLI, image_get_minmax())

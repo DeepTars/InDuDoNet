@@ -86,7 +86,7 @@ def main():
                     torch.cuda.synchronize()
                 start_time = time.time()
                 ListX, ListS, ListYS= net(Xma, XLI, M, Sma, SLI, Tr)
-            Xout= ListX[-1] / 255.0
+            Xout= ListX[-1] * 255.0
             pre_Xout[..., slice_idx] = Xout.data.cpu().numpy().squeeze()
         nibabel.save(nibabel.Nifti1Image(pre_Xout, allaffine[vol_idx]), Pred_nii + pre_name)
 if __name__ == "__main__":

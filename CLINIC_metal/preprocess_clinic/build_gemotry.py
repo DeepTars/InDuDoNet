@@ -1,29 +1,33 @@
 import odl  # https://github.com/odlgroup/odl
 import numpy as np
-## 640geo
+# 640geo
+
+
 class initialization:
     def __init__(self):
+        self.shape = 512  # 416
         self.param = {}
-        self.reso = 512 / 416 * 0.03
+        self.reso = 512 / self.shape * 0.03
 
         # image
-        self.param['nx_h'] = 416
-        self.param['ny_h'] = 416
+        self.param['nx_h'] = self.shape
+        self.param['ny_h'] = self.shape
         self.param['sx'] = self.param['nx_h']*self.reso
         self.param['sy'] = self.param['ny_h']*self.reso
 
-        ## view
+        # view
         self.param['startangle'] = 0
         self.param['endangle'] = 2 * np.pi
 
         self.param['nProj'] = 640
 
-        ## detector
+        # detector
         self.param['su'] = 2*np.sqrt(self.param['sx']**2+self.param['sy']**2)
         self.param['nu_h'] = 641
         self.param['dde'] = 1075*self.reso
         self.param['dso'] = 1075*self.reso
-        self.param['u_water'] = 0.192 #0.0205
+        self.param['u_water'] = 0.192  # 0.0205
+
 
 def imaging_geo(param):
     reco_space_h = odl.uniform_discr(
@@ -40,7 +44,7 @@ def imaging_geo(param):
                                           src_radius=param.param['dso'],
                                           det_radius=param.param['dde'])
 
-    ray_trafo_hh = odl.tomo.RayTransform(reco_space_h, geometry_h, impl='astra_cuda')  #https://github.com/astra-toolbox/astra-toolbox
+    ray_trafo_hh = odl.tomo.RayTransform(reco_space_h, geometry_h, impl='astra_cuda')  # https://github.com/astra-toolbox/astra-toolbox
     FBPOper_hh = odl.tomo.fbp_op(ray_trafo_hh, filter_type='Ram-Lak', frequency_scaling=1.0)
 
     return ray_trafo_hh, FBPOper_hh

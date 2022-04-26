@@ -1,0 +1,8 @@
+matplotlib
+odl
+PyYAML
+nibabel
+h5py
+tensorboardX
+six
+tqdm

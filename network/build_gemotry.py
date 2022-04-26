@@ -2,25 +2,26 @@ import odl
 import numpy as np
 
 
-## 640geo
+# 640geo
 class initialization:
     def __init__(self):
+        self.shape = 512  # 416
         self.param = {}
-        self.reso = 512 / 416 * 0.03
+        self.reso = 512 / self.shape * 0.03
 
         # image
-        self.param['nx_h'] = 416
-        self.param['ny_h'] = 416
+        self.param['nx_h'] = self.shape
+        self.param['ny_h'] = self.shape
         self.param['sx'] = self.param['nx_h']*self.reso
         self.param['sy'] = self.param['ny_h']*self.reso
 
-        ## view
+        # view
         self.param['startangle'] = 0
         self.param['endangle'] = 2 * np.pi
 
         self.param['nProj'] = 640
 
-        ## detector
+        # detector
         self.param['su'] = 2*np.sqrt(self.param['sx']**2+self.param['sy']**2)
         self.param['nu_h'] = 641
         self.param['dde'] = 1075*self.reso
