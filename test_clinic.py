@@ -22,6 +22,8 @@ parser.add_argument('--eta1', type=float, default=1, help='initialization for st
 parser.add_argument('--eta2', type=float, default=5, help='initialization for stepsize eta2')
 parser.add_argument('--alpha', type=float, default=0.5, help='initialization for weight factor')
 opt = parser.parse_args()
+
+
 def mkdir(path):
     folder = os.path.exists(path)
     if not folder:
@@ -30,40 +32,48 @@ def mkdir(path):
         print("---  " + path + "  ---")
     else:
         print("---  There exsits folder " + path + " !  ---")
-Pred_nii = opt.save_path +'/X_mar/'
+
+
+Pred_nii = opt.save_path + '/X_mar/'
 mkdir(Pred_nii)
+
 
 def image_get_minmax():
     return 0.0, 1.0
+
+
 def proj_get_minmax():
     return 0.0, 4.0
 
+
 def normalize(data, minmax):
     data_min, data_max = minmax
-    data = np.clip(data, data_min, data_max) 
+    data = np.clip(data, data_min, data_max)
     data = (data - data_min) / (data_max - data_min)
     data = data * 255.0
     data = data.astype(np.float32)
-    data = np.expand_dims(np.transpose(np.expand_dims(data, 2), (2, 0, 1)),0)
+    data = np.expand_dims(np.transpose(np.expand_dims(data, 2), (2, 0, 1)), 0)
     return data
 
+
 def test_image(allXma, allXLI, allM, allSma, allSLI, allTr, vol_idx, slice_idx):
-    Xma = allXma[vol_idx][...,slice_idx]
-    XLI = allXLI[vol_idx][...,slice_idx]
-    M = allM[vol_idx][...,slice_idx]
-    Sma = allSma[vol_idx][...,slice_idx]
-    SLI = allSLI[vol_idx][...,slice_idx]
-    Tr = allTr[vol_idx][...,slice_idx]
+    Xma = allXma[vol_idx][..., slice_idx]
+    XLI = allXLI[vol_idx][..., slice_idx]
+    M = allM[vol_idx][..., slice_idx]
+    Sma = allSma[vol_idx][..., slice_idx]
+    SLI = allSLI[vol_idx][..., slice_idx]
+    Tr = allTr[vol_idx][..., slice_idx]
     Xma = normalize(Xma, image_get_minmax())  # *255
     XLI = normalize(XLI, image_get_minmax())
     Sma = normalize(Sma, proj_get_minmax())
     SLI = normalize(SLI, proj_get_minmax())
     Tr = 1-Tr.astype(np.float32)
-    Tr = np.expand_dims(np.transpose(np.expand_dims(Tr, 2), (2, 0, 1)),0) # 1*1*h*w
+    Tr = np.expand_dims(np.transpose(np.expand_dims(Tr, 2), (2, 0, 1)), 0)  # 1*1*h*w
     Mask = M.astype(np.float32)
-    Mask = np.expand_dims(np.transpose(np.expand_dims(Mask, 2), (2, 0, 1)),0)
+    Mask = np.expand_dims(np.transpose(np.expand_dims(Mask, 2), (2, 0, 1)), 0)
     return torch.Tensor(Xma).cuda(), torch.Tensor(XLI).cuda(), torch.Tensor(Mask).cuda(), \
-       torch.Tensor(Sma).cuda(), torch.Tensor(SLI).cuda(), torch.Tensor(Tr).cuda()
+        torch.Tensor(Sma).cuda(), torch.Tensor(SLI).cuda(), torch.Tensor(Tr).cuda()
+
 
 def main():
     # Build model
@@ -72,7 +82,7 @@ def main():
     net.load_state_dict(torch.load(os.path.join(opt.model_dir, 'net_latest.pt')))
     net.eval()
     print('--------------load---------------all----------------nii-------------')
-    allXma, allXLI, allM, allSma, allSLI, allTr, allaffine, allfilename = clinic_input_data(opt.data_path)
+    allXma, allXLI, allM, allSma, allSLI, allTr, allaffine, allfilename, threshold = clinic_input_data(opt.data_path)
     print('--------------test---------------all----------------nii-------------')
     for vol_idx in range(len(allXma)):
         print('test %d th volume.......' % vol_idx)
@@ -80,15 +90,20 @@ def main():
         pre_Xout = np.zeros_like(allXma[vol_idx])
         pre_name = allfilename[vol_idx]
         for slice_idx in range(num_s):
-            Xma, XLI, M, Sma, SLI, Tr  = test_image(allXma, allXLI, allM, allSma, allSLI, allTr, vol_idx, slice_idx)
+            Xma, XLI, M, Sma, SLI, Tr = test_image(allXma, allXLI, allM, allSma, allSLI, allTr, vol_idx, slice_idx)
             with torch.no_grad():
                 if opt.use_GPU:
                     torch.cuda.synchronize()
                 start_time = time.time()
-                ListX, ListS, ListYS= net(Xma, XLI, M, Sma, SLI, Tr)
-            Xout= ListX[-1] * 255.0
+                ListX, ListS, ListYS = net(Xma, XLI, M, Sma, SLI, Tr)
+            Xout = ListX[-1] * 255.0
             pre_Xout[..., slice_idx] = Xout.data.cpu().numpy().squeeze()
+
+        # remapping the HU intensity distribution to the original range
+        pre_Xout = np.interp(pre_Xout, (pre_Xout.min(), pre_Xout.max()), threshold)
+
         nibabel.save(nibabel.Nifti1Image(pre_Xout, allaffine[vol_idx]), Pred_nii + pre_name)
+
+
 if __name__ == "__main__":
     main()
-

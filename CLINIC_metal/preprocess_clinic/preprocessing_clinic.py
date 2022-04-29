@@ -28,9 +28,8 @@ def clinic_input_data(test_path):
         file_path = test_path+'/'+file_name
         img = nibabel.load(file_path)
         imag = img.get_fdata()  # imag with pixel as HU unit
+        threshold = (np.min(imag), np.max(imag))
         affine = img.affine
-        print(affine)
-        raise NotImplementedError
         allaffine.append(affine)
         num_s = imag.shape[2]
         M = np.zeros((CTpara['imPixNum'], CTpara['imPixNum'], num_s), dtype='float32')
@@ -58,7 +57,7 @@ def clinic_input_data(test_path):
         allSLI.append(SLI)
         allTr.append(Tr)
         allfilename.append(file_name)
-    return allXma, allXLI, allM, allSma, allSLI, allTr, allaffine, allfilename
+    return allXma, allXLI, allM, allSma, allSLI, allTr, allaffine, allfilename, threshold
 
 
 def interpolate_projection(proj, metalTrace):
